@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تبدیل عکس به خط سیاه و سفید</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <h1>تبدیل عکس به طرح خطی سیاه و سفید</h1>
+    <p class="hint">یک عکس انتخاب کن؛ برنامه لبه‌ها (خط‌ها) رو سیاه و بقیه‌ی تصویر رو سفید می‌کنه.</p>
+
+    <div class="controls">
+      <label class="file-btn">
+        انتخاب عکس
+        <input type="file" id="fileInput" accept="image/*">
+      </label>
+
+      <div class="slider-group">
+        <label for="threshold">حساسیت خط‌ها: <span id="thresholdValue">60</span></label>
+        <input type="range" id="threshold" min="1" max="255" value="60">
+      </div>
+
+      <div class="slider-group">
+        <label for="thickness">ضخامت خط‌ها: <span id="thicknessValue">1</span></label>
+        <input type="range" id="thickness" min="1" max="5" value="1">
+      </div>
+
+      <label class="checkbox-group">
+        <input type="checkbox" id="invert">
+        معکوس کردن (خط سفید روی زمینه سیاه)
+      </label>
+
+      <button id="downloadBtn" disabled>دانلود عکس نتیجه</button>
+    </div>
+
+    <div class="canvases">
+      <div class="canvas-wrap">
+        <h3>عکس اصلی</h3>
+        <canvas id="sourceCanvas"></canvas>
+      </div>
+      <div class="canvas-wrap">
+        <h3>نتیجه</h3>
+        <canvas id="resultCanvas"></canvas>
+      </div>
+    </div>
+
+    <p id="placeholder" class="placeholder">هنوز عکسی انتخاب نشده.</p>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
