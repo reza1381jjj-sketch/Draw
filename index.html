@@ -516,25 +516,114 @@
     return chroma;
   }
 
-  function sobelEdges(gray, width, height) {
-    const gx = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
-    const gy = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
-    const edges = new Float32Array(width * height);
+  // Softens sensor/JPEG noise before edge detection runs on it. Without this,
+  // Sobel turns every tiny noisy pixel into its own little edge fragment,
+  // which is what makes raw edge detection look like a scratchy, speckled
+  // sketch instead of clean line art. Separable 5-tap Gaussian (sigma ~ 1).
+  function gaussianBlur(gray, width, height) {
+    const kernel = [1, 4, 6, 4, 1];
+    const norm = 16;
+    const temp = new Float32Array(width * height);
+    const out = new Float32Array(width * height);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let sum = 0;
+        for (let k = -2; k <= 2; k++) {
+          const sx = Math.min(width - 1, Math.max(0, x + k));
+          sum += gray[y * width + sx] * kernel[k + 2];
+        }
+        temp[y * width + x] = sum / norm;
+      }
+    }
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let sum = 0;
+        for (let k = -2; k <= 2; k++) {
+          const sy = Math.min(height - 1, Math.max(0, y + k));
+          sum += temp[sy * width + x] * kernel[k + 2];
+        }
+        out[y * width + x] = sum / norm;
+      }
+    }
+
+    return out;
+  }
+
+  function sobelMagnitude(gray, width, height) {
+    const gxK = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+    const gyK = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+    const mag = new Float32Array(width * height);
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
         let sumX = 0, sumY = 0, k = 0;
         for (let ky = -1; ky <= 1; ky++) {
           for (let kx = -1; kx <= 1; kx++) {
             const value = gray[(y + ky) * width + (x + kx)];
-            sumX += value * gx[k];
-            sumY += value * gy[k];
+            sumX += value * gxK[k];
+            sumY += value * gyK[k];
             k++;
           }
         }
-        edges[y * width + x] = Math.sqrt(sumX * sumX + sumY * sumY);
+        mag[y * width + x] = Math.sqrt(sumX * sumX + sumY * sumY);
       }
     }
-    return edges;
+    return mag;
+  }
+
+  // Thins the (naturally blobby, several-pixels-wide) thresholded edge band
+  // down to a simple 1px line. Zhang-Suen erodes boundary pixels from a
+  // shape's outside in, but only ever removes a pixel when its neighbourhood
+  // proves that doing so keeps the shape in one connected piece - so unlike
+  // gradient-direction thinning (which compares each pixel in isolation and
+  // can misfire into gaps on tight curves), this cannot break a line.
+  function zhangSuenThin(mask, width, height) {
+    const img = new Uint8Array(mask);
+    const at = (x, y) => (x < 0 || x >= width || y < 0 || y >= height) ? 0 : img[y * width + x];
+
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const pass of [1, 2]) {
+        const toRemove = [];
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const idx = y * width + x;
+            if (!img[idx]) continue;
+
+            const p2 = at(x, y - 1), p3 = at(x + 1, y - 1), p4 = at(x + 1, y),
+                  p5 = at(x + 1, y + 1), p6 = at(x, y + 1), p7 = at(x - 1, y + 1),
+                  p8 = at(x - 1, y), p9 = at(x - 1, y - 1);
+            const ring = [p2, p3, p4, p5, p6, p7, p8, p9];
+
+            const B = ring.reduce((a, b) => a + b, 0);
+            if (B < 2 || B > 6) continue;
+
+            let A = 0;
+            for (let k = 0; k < 8; k++) {
+              if (ring[k] === 0 && ring[(k + 1) % 8] === 1) A++;
+            }
+            if (A !== 1) continue;
+
+            if (pass === 1) {
+              if (p2 * p4 * p6 !== 0) continue;
+              if (p4 * p6 * p8 !== 0) continue;
+            } else {
+              if (p2 * p4 * p8 !== 0) continue;
+              if (p2 * p6 * p8 !== 0) continue;
+            }
+
+            toRemove.push(idx);
+          }
+        }
+        if (toRemove.length) {
+          changed = true;
+          for (const idx of toRemove) img[idx] = 0;
+        }
+      }
+    }
+    return img;
   }
 
   function thresholdMask(edges, threshold) {
@@ -573,13 +662,15 @@
     const srcData = sourceCtx.getImageData(0, 0, width, height);
     const gray = toGrayscale(srcData, width, height);
     const chroma = toChroma(srcData, width, height);
-    const edges = sobelEdges(gray, width, height);
+    const blurred = gaussianBlur(gray, width, height);
+    const magnitude = sobelMagnitude(blurred, width, height);
 
     const threshold = Number(thresholdInput.value);
     const thickness = Number(thicknessInput.value);
     const invert = invertInput.checked;
 
-    let mask = thresholdMask(edges, threshold);
+    let mask = thresholdMask(magnitude, threshold);
+    mask = zhangSuenThin(mask, width, height);
     if (thickness > 1) mask = dilateMask(mask, width, height, thickness - 1);
 
     const LINE_GREY = 90;
