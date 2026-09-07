@@ -502,20 +502,6 @@
     return gray;
   }
 
-  // How colorful (as opposed to neutral grey/black/white) a pixel is: the gap
-  // between its strongest and weakest channel. A true black/grey pixel has
-  // chroma 0; a saturated color like dark red has high chroma even though its
-  // luminance is low, which is what tells the two apart.
-  function toChroma(imageData, width, height) {
-    const { data } = imageData;
-    const chroma = new Float32Array(width * height);
-    for (let i = 0, p = 0; i < data.length; i += 4, p++) {
-      const r = data[i], g = data[i + 1], b = data[i + 2];
-      chroma[p] = Math.max(r, g, b) - Math.min(r, g, b);
-    }
-    return chroma;
-  }
-
   // Softens sensor/JPEG noise before edge detection runs on it. Without this,
   // Sobel turns every tiny noisy pixel into its own little edge fragment,
   // which is what makes raw edge detection look like a scratchy, speckled
@@ -661,7 +647,6 @@
     const height = sourceCanvas.height;
     const srcData = sourceCtx.getImageData(0, 0, width, height);
     const gray = toGrayscale(srcData, width, height);
-    const chroma = toChroma(srcData, width, height);
     const blurred = gaussianBlur(gray, width, height);
     const magnitude = sobelMagnitude(blurred, width, height);
 
@@ -674,18 +659,10 @@
     if (thickness > 1) mask = dilateMask(mask, width, height, thickness - 1);
 
     const LINE_GREY = 90;
-    // Pixels that were already black/near-black in the source photo stay grey
-    // in the result too, instead of being wiped to white along with the rest
-    // of the background. Both checks matter: luminance alone would also grab
-    // mid-tone greys, and would miss the fact that a dark but saturated color
-    // (e.g. a deep red) is a color, not black, even though it's dim.
-    const BLACK_LUMINANCE_THRESHOLD = 40;
-    const BLACK_CHROMA_THRESHOLD = 24;
     const outData = resultCtx.createImageData(width, height);
     for (let i = 0; i < mask.length; i++) {
-      const isNearBlack = gray[i] < BLACK_LUMINANCE_THRESHOLD && chroma[i] < BLACK_CHROMA_THRESHOLD;
-      const isMarked = mask[i] || isNearBlack;
-      const value = invert ? (isMarked ? 255 : LINE_GREY) : (isMarked ? LINE_GREY : 255);
+      const isLine = mask[i];
+      const value = invert ? (isLine ? 255 : LINE_GREY) : (isLine ? LINE_GREY : 255);
       const offset = i * 4;
       outData.data[offset] = value;
       outData.data[offset + 1] = value;
