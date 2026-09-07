@@ -103,6 +103,7 @@
 
   /* Dropzone */
   .dropzone {
+    position: relative;
     border: 2px dashed var(--border);
     border-radius: 18px;
     background: var(--surface);
@@ -111,18 +112,12 @@
     cursor: pointer;
     transition: border-color .15s ease, background .15s ease;
     margin-bottom: 28px;
-    touch-action: manipulation;
   }
 
   .dropzone:hover,
   .dropzone.drag {
     border-color: var(--accent);
     background: var(--accent-soft);
-  }
-
-  .dropzone:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
   }
 
   .dropzone .icon {
@@ -142,8 +137,23 @@
     margin-top: 4px;
   }
 
+  /* The real file input sits invisibly on top of the whole dropzone, so every
+     click/tap lands directly on it — a script-triggered .click() on a hidden
+     input is not reliable inside a sandboxed iframe. */
   .dropzone input[type="file"] {
-    display: none;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .dropzone input[type="file"]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 18px;
   }
 
   /* Light table */
@@ -337,11 +347,11 @@
       <p class="tagline">عکس بده، خط‌نگار لبه‌های اصلیش رو با جوهر مشکی روی زمینه‌ی سفید می‌کشه — دقیقاً مثل یه طرح خطی دستی.</p>
     </div>
 
-    <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="آپلود عکس">
+    <div class="dropzone" id="dropzone">
       <span class="icon" aria-hidden="true">📤</span>
       <div class="primary">اینجا کلیک کن تا عکستو انتخاب کنی</div>
       <div class="secondary">یا فایل عکس رو بکش و همینجا رها کن (JPG، PNG، ...)</div>
-      <input type="file" id="fileInput" accept="image/*">
+      <input type="file" id="fileInput" accept="image/*" aria-label="آپلود عکس">
     </div>
 
     <div class="light-table">
@@ -441,10 +451,6 @@
 
   fileInput.addEventListener('change', (e) => loadFile(e.target.files[0]));
 
-  dropzone.addEventListener('click', () => fileInput.click());
-  dropzone.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
-  });
   dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag'); });
   dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
   dropzone.addEventListener('drop', (e) => {
