@@ -379,8 +379,8 @@
 
     <div class="panel">
       <div class="control">
-        <label for="threshold">حساسیت خط‌ها <span class="readout" id="thresholdValue">60</span></label>
-        <input type="range" id="threshold" min="1" max="255" value="60">
+        <label for="threshold">حساسیت خط‌ها <span class="readout" id="thresholdValue">130</span></label>
+        <input type="range" id="threshold" min="1" max="255" value="130">
       </div>
 
       <div class="control">
@@ -618,6 +618,47 @@
     return mask;
   }
 
+  // Automatically finds a good edge-vs-background split for THIS image
+  // (Otsu's method run on the gradient-magnitude histogram) instead of using
+  // one fixed magnitude number for every image. A flat cartoon graphic and a
+  // busy, JPEG-noisy illustration have wildly different gradient scales -
+  // a fixed threshold is either too weak (noise everywhere) or too strong
+  // (real edges wiped out), depending on which image happens to hit it.
+  function otsuThreshold(magnitude) {
+    let max = 0;
+    for (let i = 0; i < magnitude.length; i++) if (magnitude[i] > max) max = magnitude[i];
+    if (max === 0) return 0;
+
+    const bins = 256;
+    const hist = new Float64Array(bins);
+    for (let i = 0; i < magnitude.length; i++) {
+      const b = Math.min(bins - 1, Math.floor((magnitude[i] / max) * (bins - 1)));
+      hist[b]++;
+    }
+
+    const total = magnitude.length;
+    let sumAll = 0;
+    for (let i = 0; i < bins; i++) sumAll += i * hist[i];
+
+    let sumB = 0, weightB = 0, bestVariance = 0, bestBin = 0;
+    for (let i = 0; i < bins; i++) {
+      weightB += hist[i];
+      if (weightB === 0) continue;
+      const weightF = total - weightB;
+      if (weightF === 0) break;
+      sumB += i * hist[i];
+      const meanB = sumB / weightB;
+      const meanF = (sumAll - sumB) / weightF;
+      const variance = weightB * weightF * (meanB - meanF) * (meanB - meanF);
+      if (variance > bestVariance) {
+        bestVariance = variance;
+        bestBin = i;
+      }
+    }
+
+    return (bestBin / (bins - 1)) * max;
+  }
+
   function dilateMask(mask, width, height, radius) {
     let current = mask;
     for (let step = 0; step < radius; step++) {
@@ -650,7 +691,14 @@
     const blurred = gaussianBlur(gray, width, height);
     const magnitude = sobelMagnitude(blurred, width, height);
 
-    const threshold = Number(thresholdInput.value);
+    // The slider is a multiplier around the image's own auto-computed
+    // baseline, not an absolute magnitude - so the default slider position
+    // gives a good result on any image without per-image tuning, and moving
+    // the slider still predictably makes lines more or less sensitive from
+    // there.
+    const SENSITIVITY_SLIDER_DEFAULT = 130;
+    const sensitivityMultiplier = Number(thresholdInput.value) / SENSITIVITY_SLIDER_DEFAULT;
+    const threshold = otsuThreshold(magnitude) * sensitivityMultiplier;
     const thickness = Number(thicknessInput.value);
     const invert = invertInput.checked;
 
