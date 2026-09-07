@@ -344,7 +344,7 @@
     <div class="hero">
       <div class="mark" aria-hidden="true">✏️</div>
       <h1>خط‌نگار</h1>
-      <p class="tagline">عکس بده، خط‌نگار لبه‌های اصلیش رو با جوهر خاکستری روی زمینه‌ی سفید می‌کشه — دقیقاً مثل یه طرح خطی دستی.</p>
+      <p class="tagline">عکس بده، خط‌نگار لبه‌های اصلیش رو با جوهر مشکی روی زمینه‌ی سفید می‌کشه — دقیقاً مثل یه طرح خطی دستی.</p>
     </div>
 
     <div class="dropzone" id="dropzone">
@@ -379,8 +379,8 @@
 
     <div class="panel">
       <div class="control">
-        <label for="threshold">حساسیت خط‌ها <span class="readout" id="thresholdValue">130</span></label>
-        <input type="range" id="threshold" min="1" max="255" value="130">
+        <label for="threshold">حساسیت خط‌ها <span class="readout" id="thresholdValue">60</span></label>
+        <input type="range" id="threshold" min="1" max="255" value="60">
       </div>
 
       <div class="control">
@@ -390,7 +390,7 @@
 
       <label class="toggle-row">
         <input type="checkbox" id="invert">
-        معکوس (خط سفید روی زمینه‌ی خاکستری)
+        معکوس (خط سفید روی زمینه‌ی سیاه)
       </label>
 
       <div class="actions">
@@ -502,41 +502,6 @@
     return gray;
   }
 
-  // Softens sensor/JPEG noise before edge detection runs on it. Without this,
-  // Sobel turns every tiny noisy pixel into its own little edge fragment,
-  // which is what makes raw edge detection look like a scratchy, speckled
-  // sketch instead of clean line art. Separable 5-tap Gaussian (sigma ~ 1).
-  function gaussianBlur(gray, width, height) {
-    const kernel = [1, 4, 6, 4, 1];
-    const norm = 16;
-    const temp = new Float32Array(width * height);
-    const out = new Float32Array(width * height);
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        let sum = 0;
-        for (let k = -2; k <= 2; k++) {
-          const sx = Math.min(width - 1, Math.max(0, x + k));
-          sum += gray[y * width + sx] * kernel[k + 2];
-        }
-        temp[y * width + x] = sum / norm;
-      }
-    }
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        let sum = 0;
-        for (let k = -2; k <= 2; k++) {
-          const sy = Math.min(height - 1, Math.max(0, y + k));
-          sum += temp[sy * width + x] * kernel[k + 2];
-        }
-        out[y * width + x] = sum / norm;
-      }
-    }
-
-    return out;
-  }
-
   function sobelMagnitude(gray, width, height) {
     const gxK = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
     const gyK = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
@@ -558,105 +523,10 @@
     return mag;
   }
 
-  // Thins the (naturally blobby, several-pixels-wide) thresholded edge band
-  // down to a simple 1px line. Zhang-Suen erodes boundary pixels from a
-  // shape's outside in, but only ever removes a pixel when its neighbourhood
-  // proves that doing so keeps the shape in one connected piece - so unlike
-  // gradient-direction thinning (which compares each pixel in isolation and
-  // can misfire into gaps on tight curves), this cannot break a line.
-  function zhangSuenThin(mask, width, height) {
-    const img = new Uint8Array(mask);
-    const at = (x, y) => (x < 0 || x >= width || y < 0 || y >= height) ? 0 : img[y * width + x];
-
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (const pass of [1, 2]) {
-        const toRemove = [];
-        for (let y = 0; y < height; y++) {
-          for (let x = 0; x < width; x++) {
-            const idx = y * width + x;
-            if (!img[idx]) continue;
-
-            const p2 = at(x, y - 1), p3 = at(x + 1, y - 1), p4 = at(x + 1, y),
-                  p5 = at(x + 1, y + 1), p6 = at(x, y + 1), p7 = at(x - 1, y + 1),
-                  p8 = at(x - 1, y), p9 = at(x - 1, y - 1);
-            const ring = [p2, p3, p4, p5, p6, p7, p8, p9];
-
-            const B = ring.reduce((a, b) => a + b, 0);
-            if (B < 2 || B > 6) continue;
-
-            let A = 0;
-            for (let k = 0; k < 8; k++) {
-              if (ring[k] === 0 && ring[(k + 1) % 8] === 1) A++;
-            }
-            if (A !== 1) continue;
-
-            if (pass === 1) {
-              if (p2 * p4 * p6 !== 0) continue;
-              if (p4 * p6 * p8 !== 0) continue;
-            } else {
-              if (p2 * p4 * p8 !== 0) continue;
-              if (p2 * p6 * p8 !== 0) continue;
-            }
-
-            toRemove.push(idx);
-          }
-        }
-        if (toRemove.length) {
-          changed = true;
-          for (const idx of toRemove) img[idx] = 0;
-        }
-      }
-    }
-    return img;
-  }
-
   function thresholdMask(edges, threshold) {
     const mask = new Uint8Array(edges.length);
     for (let i = 0; i < edges.length; i++) mask[i] = edges[i] >= threshold ? 1 : 0;
     return mask;
-  }
-
-  // Automatically finds a good edge-vs-background split for THIS image
-  // (Otsu's method run on the gradient-magnitude histogram) instead of using
-  // one fixed magnitude number for every image. A flat cartoon graphic and a
-  // busy, JPEG-noisy illustration have wildly different gradient scales -
-  // a fixed threshold is either too weak (noise everywhere) or too strong
-  // (real edges wiped out), depending on which image happens to hit it.
-  function otsuThreshold(magnitude) {
-    let max = 0;
-    for (let i = 0; i < magnitude.length; i++) if (magnitude[i] > max) max = magnitude[i];
-    if (max === 0) return 0;
-
-    const bins = 256;
-    const hist = new Float64Array(bins);
-    for (let i = 0; i < magnitude.length; i++) {
-      const b = Math.min(bins - 1, Math.floor((magnitude[i] / max) * (bins - 1)));
-      hist[b]++;
-    }
-
-    const total = magnitude.length;
-    let sumAll = 0;
-    for (let i = 0; i < bins; i++) sumAll += i * hist[i];
-
-    let sumB = 0, weightB = 0, bestVariance = 0, bestBin = 0;
-    for (let i = 0; i < bins; i++) {
-      weightB += hist[i];
-      if (weightB === 0) continue;
-      const weightF = total - weightB;
-      if (weightF === 0) break;
-      sumB += i * hist[i];
-      const meanB = sumB / weightB;
-      const meanF = (sumAll - sumB) / weightF;
-      const variance = weightB * weightF * (meanB - meanF) * (meanB - meanF);
-      if (variance > bestVariance) {
-        bestVariance = variance;
-        bestBin = i;
-      }
-    }
-
-    return (bestBin / (bins - 1)) * max;
   }
 
   function dilateMask(mask, width, height, radius) {
@@ -688,29 +558,19 @@
     const height = sourceCanvas.height;
     const srcData = sourceCtx.getImageData(0, 0, width, height);
     const gray = toGrayscale(srcData, width, height);
-    const blurred = gaussianBlur(gray, width, height);
-    const magnitude = sobelMagnitude(blurred, width, height);
+    const magnitude = sobelMagnitude(gray, width, height);
 
-    // The slider is a multiplier around the image's own auto-computed
-    // baseline, not an absolute magnitude - so the default slider position
-    // gives a good result on any image without per-image tuning, and moving
-    // the slider still predictably makes lines more or less sensitive from
-    // there.
-    const SENSITIVITY_SLIDER_DEFAULT = 130;
-    const sensitivityMultiplier = Number(thresholdInput.value) / SENSITIVITY_SLIDER_DEFAULT;
-    const threshold = otsuThreshold(magnitude) * sensitivityMultiplier;
+    const threshold = Number(thresholdInput.value);
     const thickness = Number(thicknessInput.value);
     const invert = invertInput.checked;
 
     let mask = thresholdMask(magnitude, threshold);
-    mask = zhangSuenThin(mask, width, height);
     if (thickness > 1) mask = dilateMask(mask, width, height, thickness - 1);
 
-    const LINE_GREY = 90;
     const outData = resultCtx.createImageData(width, height);
     for (let i = 0; i < mask.length; i++) {
       const isLine = mask[i];
-      const value = invert ? (isLine ? 255 : LINE_GREY) : (isLine ? LINE_GREY : 255);
+      const value = invert ? (isLine ? 255 : 0) : (isLine ? 0 : 255);
       const offset = i * 4;
       outData.data[offset] = value;
       outData.data[offset + 1] = value;
