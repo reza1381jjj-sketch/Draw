@@ -111,6 +111,7 @@
     cursor: pointer;
     transition: border-color .15s ease, background .15s ease;
     margin-bottom: 28px;
+    touch-action: manipulation;
   }
 
   .dropzone:hover,
@@ -245,16 +246,20 @@
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
-    height: 4px;
-    border-radius: 2px;
+    height: 6px;
+    border-radius: 3px;
     background: var(--border);
     outline-offset: 4px;
+    touch-action: manipulation;
+    /* Extra vertical padding widens the touch hit area beyond the visible track. */
+    padding-block: 12px;
+    background-clip: content-box;
   }
 
   input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 17px;
-    height: 17px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     background: var(--accent);
     border: 3px solid var(--surface);
@@ -263,8 +268,8 @@
   }
 
   input[type="range"]::-moz-range-thumb {
-    width: 17px;
-    height: 17px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     background: var(--accent);
     border: 3px solid var(--surface);
@@ -275,15 +280,20 @@
   .toggle-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     font-size: 0.88rem;
     color: var(--ink-soft);
+    padding-block: 8px;
+    cursor: pointer;
+    touch-action: manipulation;
   }
 
   .toggle-row input {
-    width: 16px;
-    height: 16px;
+    width: 22px;
+    height: 22px;
     accent-color: var(--accent);
+    flex-shrink: 0;
+    cursor: pointer;
   }
 
   .actions {
@@ -303,8 +313,10 @@
     color: var(--accent-contrast);
     border: none;
     border-radius: 10px;
-    padding: 11px 22px;
+    padding: 13px 24px;
+    min-height: 46px;
     cursor: pointer;
+    touch-action: manipulation;
   }
 
   button.primary:focus-visible {
