@@ -344,7 +344,7 @@
     <div class="hero">
       <div class="mark" aria-hidden="true">✏️</div>
       <h1>خط‌نگار</h1>
-      <p class="tagline">عکس بده، خط‌نگار لبه‌های اصلیش رو با جوهر مشکی روی زمینه‌ی سفید می‌کشه — دقیقاً مثل یه طرح خطی دستی.</p>
+      <p class="tagline">عکس بده، خط‌نگار لبه‌های اصلیش رو با جوهر خاکستری روی زمینه‌ی سفید می‌کشه — دقیقاً مثل یه طرح خطی دستی.</p>
     </div>
 
     <div class="dropzone" id="dropzone">
@@ -390,7 +390,7 @@
 
       <label class="toggle-row">
         <input type="checkbox" id="invert">
-        معکوس (خط سفید روی زمینه‌ی سیاه)
+        معکوس (خط سفید روی زمینه‌ی خاکستری)
       </label>
 
       <div class="actions">
@@ -567,10 +567,11 @@
     let mask = thresholdMask(magnitude, threshold);
     if (thickness > 1) mask = dilateMask(mask, width, height, thickness - 1);
 
+    const LINE_GREY = 90;
     const outData = resultCtx.createImageData(width, height);
     for (let i = 0; i < mask.length; i++) {
       const isLine = mask[i];
-      const value = invert ? (isLine ? 255 : 0) : (isLine ? 0 : 255);
+      const value = invert ? (isLine ? 255 : LINE_GREY) : (isLine ? LINE_GREY : 255);
       const offset = i * 4;
       outData.data[offset] = value;
       outData.data[offset + 1] = value;
