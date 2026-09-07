@@ -3,52 +3,618 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تبدیل عکس به خط سیاه و سفید</title>
-<link rel="stylesheet" href="style.css">
+<title>خط‌نگار</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Vazirmatn:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root {
+    --bg: #f6f3ee;
+    --surface: #ffffff;
+    --surface-sunken: #efece4;
+    --ink: #24262b;
+    --ink-soft: #5b616d;
+    --border: #ddd6c9;
+    --accent: #3f5aa6;
+    --accent-soft: #e7ebf6;
+    --accent-contrast: #ffffff;
+    --danger: #a6423f;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1c20;
+      --surface: #232428;
+      --surface-sunken: #1f2024;
+      --ink: #eceae4;
+      --ink-soft: #a8acb8;
+      --border: #3a3c44;
+      --accent: #8ca0e6;
+      --accent-soft: #262c42;
+      --accent-contrast: #14151a;
+      --danger: #d97a77;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #1b1c20;
+    --surface: #232428;
+    --surface-sunken: #1f2024;
+    --ink: #eceae4;
+    --ink-soft: #a8acb8;
+    --border: #3a3c44;
+    --accent: #8ca0e6;
+    --accent-soft: #262c42;
+    --accent-contrast: #14151a;
+    --danger: #d97a77;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Vazirmatn", Tahoma, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    margin-bottom: 36px;
+  }
+
+  .hero .mark {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+  }
+
+  h1 {
+    font-family: "Reem Kufi", "Vazirmatn", sans-serif;
+    font-weight: 700;
+    font-size: clamp(2rem, 4vw, 2.6rem);
+    margin: 4px 0 0;
+    text-wrap: balance;
+  }
+
+  .tagline {
+    color: var(--ink-soft);
+    font-size: 1.02rem;
+    max-width: 480px;
+    line-height: 1.9;
+    margin: 0;
+  }
+
+  /* Dropzone */
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 18px;
+    background: var(--surface);
+    padding: 30px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+    margin-bottom: 28px;
+  }
+
+  .dropzone:hover,
+  .dropzone.drag {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .dropzone:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .dropzone .icon {
+    font-size: 30px;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .dropzone .primary {
+    font-weight: 600;
+    font-size: 1.05rem;
+  }
+
+  .dropzone .secondary {
+    color: var(--ink-soft);
+    font-size: 0.88rem;
+    margin-top: 4px;
+  }
+
+  .dropzone input[type="file"] {
+    display: none;
+  }
+
+  /* Light table */
+  .light-table {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .panes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .pane {
+    position: relative;
+  }
+
+  .pane .label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .pane .label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    letter-spacing: 0.02em;
+  }
+
+  .sample-badge {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+
+  .canvas-frame {
+    border-radius: 10px;
+    overflow: hidden;
+    background:
+      linear-gradient(45deg, var(--surface-sunken) 25%, transparent 25%) -10px 0/20px 20px,
+      linear-gradient(-45deg, var(--surface-sunken) 25%, transparent 25%) -10px 0/20px 20px,
+      linear-gradient(45deg, transparent 75%, var(--surface-sunken) 75%) -10px 0/20px 20px,
+      linear-gradient(-45deg, transparent 75%, var(--surface-sunken) 75%) -10px 0/20px 20px,
+      var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  @media (max-width: 680px) {
+    .panes { grid-template-columns: 1fr; }
+  }
+
+  /* Controls */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 22px 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 22px 28px;
+    align-items: end;
+  }
+
+  .control label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+
+  .control .readout {
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 2px 7px;
+    border-radius: 6px;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline-offset: 4px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--surface);
+    box-shadow: 0 0 0 1px var(--accent);
+    cursor: pointer;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--surface);
+    box-shadow: 0 0 0 1px var(--accent);
+    cursor: pointer;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+  }
+
+  .toggle-row input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+  }
+
+  .actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 4px;
+    border-top: 1px solid var(--border);
+    margin-top: 2px;
+  }
+
+  button.primary {
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.94rem;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    border: none;
+    border-radius: 10px;
+    padding: 11px 22px;
+    cursor: pointer;
+  }
+
+  button.primary:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
 </head>
 <body>
-  <div class="app">
-    <h1>تبدیل عکس به طرح خطی سیاه و سفید</h1>
-    <p class="hint">یک عکس انتخاب کن؛ برنامه لبه‌ها (خط‌ها) رو سیاه و بقیه‌ی تصویر رو سفید می‌کنه.</p>
+  <div class="shell">
+    <div class="hero">
+      <div class="mark" aria-hidden="true">✏️</div>
+      <h1>خط‌نگار</h1>
+      <p class="tagline">عکس بده، خط‌نگار لبه‌های اصلیش رو با جوهر مشکی روی زمینه‌ی سفید می‌کشه — دقیقاً مثل یه طرح خطی دستی.</p>
+    </div>
 
-    <div class="controls">
-      <label class="file-btn">
-        انتخاب عکس
-        <input type="file" id="fileInput" accept="image/*">
-      </label>
+    <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="آپلود عکس">
+      <span class="icon" aria-hidden="true">📤</span>
+      <div class="primary">اینجا کلیک کن تا عکستو انتخاب کنی</div>
+      <div class="secondary">یا فایل عکس رو بکش و همینجا رها کن (JPG، PNG، ...)</div>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
 
-      <div class="slider-group">
-        <label for="threshold">حساسیت خط‌ها: <span id="thresholdValue">60</span></label>
+    <div class="light-table">
+      <div class="panes">
+        <div class="pane">
+          <div class="label-row">
+            <span class="label">عکس ورودی</span>
+            <span class="sample-badge" id="sourceBadge">نمونه</span>
+          </div>
+          <div class="canvas-frame">
+            <canvas id="sourceCanvas"></canvas>
+          </div>
+        </div>
+        <div class="pane">
+          <div class="label-row">
+            <span class="label">طرح خطی</span>
+            <span class="sample-badge" id="resultBadge">نمونه</span>
+          </div>
+          <div class="canvas-frame">
+            <canvas id="resultCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="control">
+        <label for="threshold">حساسیت خط‌ها <span class="readout" id="thresholdValue">60</span></label>
         <input type="range" id="threshold" min="1" max="255" value="60">
       </div>
 
-      <div class="slider-group">
-        <label for="thickness">ضخامت خط‌ها: <span id="thicknessValue">1</span></label>
+      <div class="control">
+        <label for="thickness">ضخامت خط‌ها <span class="readout" id="thicknessValue">1</span></label>
         <input type="range" id="thickness" min="1" max="5" value="1">
       </div>
 
-      <label class="checkbox-group">
+      <label class="toggle-row">
         <input type="checkbox" id="invert">
-        معکوس کردن (خط سفید روی زمینه سیاه)
+        معکوس (خط سفید روی زمینه‌ی سیاه)
       </label>
 
-      <button id="downloadBtn" disabled>دانلود عکس نتیجه</button>
-    </div>
-
-    <div class="canvases">
-      <div class="canvas-wrap">
-        <h3>عکس اصلی</h3>
-        <canvas id="sourceCanvas"></canvas>
-      </div>
-      <div class="canvas-wrap">
-        <h3>نتیجه</h3>
-        <canvas id="resultCanvas"></canvas>
+      <div class="actions">
+        <button class="primary" id="downloadBtn">دانلود طرح خطی</button>
       </div>
     </div>
-
-    <p id="placeholder" class="placeholder">هنوز عکسی انتخاب نشده.</p>
   </div>
 
-  <script src="script.js"></script>
+<script>
+(function () {
+  const fileInput = document.getElementById('fileInput');
+  const dropzone = document.getElementById('dropzone');
+  const sourceCanvas = document.getElementById('sourceCanvas');
+  const resultCanvas = document.getElementById('resultCanvas');
+  const thresholdInput = document.getElementById('threshold');
+  const thresholdValue = document.getElementById('thresholdValue');
+  const thicknessInput = document.getElementById('thickness');
+  const thicknessValue = document.getElementById('thicknessValue');
+  const invertInput = document.getElementById('invert');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const sourceBadge = document.getElementById('sourceBadge');
+  const resultBadge = document.getElementById('resultBadge');
+
+  const sourceCtx = sourceCanvas.getContext('2d');
+  const resultCtx = resultCanvas.getContext('2d');
+
+  const MAX_DIMENSION = 1400;
+  let currentImage = null;
+  let isSample = true;
+
+  function fitDimensions(width, height) {
+    const scale = Math.min(1, MAX_DIMENSION / Math.max(width, height));
+    return { width: Math.round(width * scale), height: Math.round(height * scale) };
+  }
+
+  function drawSource(img) {
+    const { width, height } = fitDimensions(img.width, img.height);
+    sourceCanvas.width = width;
+    sourceCanvas.height = height;
+    resultCanvas.width = width;
+    resultCanvas.height = height;
+    sourceCtx.drawImage(img, 0, 0, width, height);
+  }
+
+  function loadFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const img = new Image();
+    img.onload = () => {
+      currentImage = img;
+      isSample = false;
+      sourceBadge.style.display = 'none';
+      resultBadge.style.display = 'none';
+      drawSource(img);
+      process();
+    };
+    img.src = URL.createObjectURL(file);
+  }
+
+  fileInput.addEventListener('change', (e) => loadFile(e.target.files[0]));
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+  });
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('drag');
+    loadFile(e.dataTransfer.files[0]);
+  });
+
+  thresholdInput.addEventListener('input', () => {
+    thresholdValue.textContent = thresholdInput.value;
+    process();
+  });
+  thicknessInput.addEventListener('input', () => {
+    thicknessValue.textContent = thicknessInput.value;
+    process();
+  });
+  invertInput.addEventListener('change', process);
+
+  downloadBtn.addEventListener('click', async () => {
+    resultCanvas.toBlob(async (blob) => {
+      if (!blob) return;
+
+      if (window.claude && typeof window.claude.use === 'function') {
+        try {
+          const downloads = await window.claude.use('downloads');
+          if (downloads) {
+            await downloads.save({ filename: 'khat-negar.png', data: blob });
+            return;
+          }
+        } catch (err) {
+          if (err && err.code === 'declined') return;
+          // fall through to the plain-browser fallback below
+        }
+      }
+
+      const link = document.createElement('a');
+      link.download = 'khat-negar.png';
+      link.href = URL.createObjectURL(blob);
+      link.click();
+    }, 'image/png');
+  });
+
+  function toGrayscale(imageData, width, height) {
+    const { data } = imageData;
+    const gray = new Float32Array(width * height);
+    for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+      gray[p] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    }
+    return gray;
+  }
+
+  function sobelEdges(gray, width, height) {
+    const gx = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+    const gy = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+    const edges = new Float32Array(width * height);
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        let sumX = 0, sumY = 0, k = 0;
+        for (let ky = -1; ky <= 1; ky++) {
+          for (let kx = -1; kx <= 1; kx++) {
+            const value = gray[(y + ky) * width + (x + kx)];
+            sumX += value * gx[k];
+            sumY += value * gy[k];
+            k++;
+          }
+        }
+        edges[y * width + x] = Math.sqrt(sumX * sumX + sumY * sumY);
+      }
+    }
+    return edges;
+  }
+
+  function thresholdMask(edges, threshold) {
+    const mask = new Uint8Array(edges.length);
+    for (let i = 0; i < edges.length; i++) mask[i] = edges[i] >= threshold ? 1 : 0;
+    return mask;
+  }
+
+  function dilateMask(mask, width, height, radius) {
+    let current = mask;
+    for (let step = 0; step < radius; step++) {
+      const next = new Uint8Array(width * height);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = y * width + x;
+          if (current[idx]) { next[idx] = 1; continue; }
+          let found = 0;
+          for (let dy = -1; dy <= 1 && !found; dy++) {
+            for (let dx = -1; dx <= 1 && !found; dx++) {
+              const ny = y + dy, nx = x + dx;
+              if (ny >= 0 && ny < height && nx >= 0 && nx < width && current[ny * width + nx]) found = 1;
+            }
+          }
+          next[idx] = found;
+        }
+      }
+      current = next;
+    }
+    return current;
+  }
+
+  function process() {
+    if (sourceCanvas.width === 0) return;
+    const width = sourceCanvas.width;
+    const height = sourceCanvas.height;
+    const srcData = sourceCtx.getImageData(0, 0, width, height);
+    const gray = toGrayscale(srcData, width, height);
+    const edges = sobelEdges(gray, width, height);
+
+    const threshold = Number(thresholdInput.value);
+    const thickness = Number(thicknessInput.value);
+    const invert = invertInput.checked;
+
+    let mask = thresholdMask(edges, threshold);
+    if (thickness > 1) mask = dilateMask(mask, width, height, thickness - 1);
+
+    const outData = resultCtx.createImageData(width, height);
+    for (let i = 0; i < mask.length; i++) {
+      const isLine = mask[i];
+      const value = invert ? (isLine ? 255 : 0) : (isLine ? 0 : 255);
+      const offset = i * 4;
+      outData.data[offset] = value;
+      outData.data[offset + 1] = value;
+      outData.data[offset + 2] = value;
+      outData.data[offset + 3] = 255;
+    }
+    resultCtx.putImageData(outData, 0, 0);
+  }
+
+  function drawSampleScene() {
+    const width = 520, height = 360;
+    sourceCanvas.width = width;
+    sourceCanvas.height = height;
+    resultCanvas.width = width;
+    resultCanvas.height = height;
+
+    const ctx = sourceCtx;
+    const sky = ctx.createLinearGradient(0, 0, 0, height * 0.65);
+    sky.addColorStop(0, '#a9c6e8');
+    sky.addColorStop(1, '#e7d9b8');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, width, height * 0.65);
+
+    ctx.fillStyle = '#e8b23d';
+    ctx.beginPath();
+    ctx.arc(width * 0.78, height * 0.22, 34, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#6f8f5b';
+    ctx.beginPath();
+    ctx.moveTo(0, height * 0.62);
+    ctx.lineTo(width * 0.32, height * 0.32);
+    ctx.lineTo(width * 0.58, height * 0.62);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#527247';
+    ctx.beginPath();
+    ctx.moveTo(width * 0.4, height * 0.62);
+    ctx.lineTo(width * 0.68, height * 0.4);
+    ctx.lineTo(width, height * 0.62);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#cfe0a8';
+    ctx.fillRect(0, height * 0.62, width, height * 0.38);
+
+    ctx.strokeStyle = '#4a3624';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(width * 0.18, height * 0.98);
+    ctx.lineTo(width * 0.18, height * 0.7);
+    ctx.stroke();
+    ctx.fillStyle = '#3f7a45';
+    ctx.beginPath();
+    ctx.arc(width * 0.18, height * 0.66, 30, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawSampleScene();
+  process();
+})();
+</script>
 </body>
 </html>
