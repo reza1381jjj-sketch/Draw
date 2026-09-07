@@ -568,10 +568,14 @@
     if (thickness > 1) mask = dilateMask(mask, width, height, thickness - 1);
 
     const LINE_GREY = 90;
+    // Pixels that were already dark/black in the source photo stay grey in the
+    // result too, instead of being wiped to white along with the rest of the
+    // background.
+    const DARK_FILL_THRESHOLD = 60;
     const outData = resultCtx.createImageData(width, height);
     for (let i = 0; i < mask.length; i++) {
-      const isLine = mask[i];
-      const value = invert ? (isLine ? 255 : LINE_GREY) : (isLine ? LINE_GREY : 255);
+      const isMarked = mask[i] || gray[i] < DARK_FILL_THRESHOLD;
+      const value = invert ? (isMarked ? 255 : LINE_GREY) : (isMarked ? LINE_GREY : 255);
       const offset = i * 4;
       outData.data[offset] = value;
       outData.data[offset + 1] = value;
