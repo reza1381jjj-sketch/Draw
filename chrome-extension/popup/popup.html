@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Real Quality Image Saver</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <div class="title">
+      <span class="dot" aria-hidden="true"></span>
+      Real Quality Image Saver
+    </div>
+    <button id="rescanBtn" class="ghost" title="Scan this page again">Rescan</button>
+  </header>
+
+  <div class="toolbar">
+    <label class="check-all">
+      <input type="checkbox" id="selectAll">
+      Select all
+    </label>
+    <span id="statusText" class="status">Scanning page…</span>
+    <button id="downloadSelectedBtn" class="primary" disabled>Download selected</button>
+  </div>
+
+  <main id="list" class="list"></main>
+
+  <p class="hint">Tip: right-click any image on a page and choose <b>“Download image (real quality)”</b> for a one-click save.</p>
+
+<script src="popup.js"></script>
+</body>
+</html>
